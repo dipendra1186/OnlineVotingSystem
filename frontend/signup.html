@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Voting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .text-center {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .link {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="loginForm">
+            <h2>Login</h2>
+            <form onsubmit="return handleLogin(event)">
+                <div class="form-group">
+                    <label for="voterID">Voter ID</label>
+                    <input type="text" id="voterID" placeholder="Enter your voter ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit">Login</button>
+                <div class="text-center">
+                    Don't have an account? <a href="#" class="link" onclick="showRegisterForm()">Register here</a>
+                </div>
+            </form>
+        </div>
+
+        <div id="registerForm" style="display: none;">
+            <h2>Register</h2>
+            <form onsubmit="return handleRegister(event)">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" placeholder="Enter your age" required>
+                </div>
+                <div class="form-group">
+                    <label for="religion">Religion</label>
+                    <select id="religion" required>
+                        <option value="">Select Religion</option>
+                        <option value="Christianity">Christianity</option>
+                        <option value="Islam">Islam</option>
+                        <option value="Hinduism">Hinduism</option>
+                        <option value="Buddhism">Buddhism</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="Create a password" required>
+                </div>
+                <div class="form-group">
+                    <label for="voterIDReg">Voter ID (Enter 5 digits or Auto-Generated)</label>
+                    <input type="text" id="voterIDReg" placeholder="Enter 5 digits or leave empty" pattern="[0-9]{5}">
+                    <button type="button" onclick="generateVoterID()">Generate ID</button>
+                </div>
+                <button type="submit">Register</button>
+                <div class="text-center">
+                    Already have an account? <a href="#" class="link" onclick="showLoginForm()">Login here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+
+        function generateVoterID() {
+            const randomID = Math.floor(10000 + Math.random() * 90000);
+            document.getElementById('voterIDReg').value = randomID;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const userData = {
+                voterID: document.getElementById('voterID').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+                alert(data.message);
+            } catch (error) {
+                alert('Error: Unable to connect to the API');
+                console.error('Error:', error);
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const userData = {
+                fullName: document.getElementById('fullName').value,
+                age: document.getElementById('age').value,
+                religion: document.getElementById('religion').value,
+                gender: document.getElementById('gender').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('regPassword').value,
+                voterID: document.getElementById('voterIDReg').value
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+                alert(data.message);
+                if (data.success) {
+                    showLoginForm();
+                }
+            } catch (error) {
+                alert('Error: Unable to connect to the API');
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>
