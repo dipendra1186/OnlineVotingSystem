@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 flex">
+    <!-- Sidebar -->
+    <div class="w-64 bg-blue-900 text-white p-5 min-h-screen">
+        <h2 class="text-xl font-bold">Voting Dashboard</h2>
+        <ul class="mt-6">
+            <li class="py-2"><a href="Dash.html" class="hover:text-gray-300">Go to Dashboard</a></li>
+            <li class="py-2"><a href="candidate.html" class="hover:text-gray-300">Manage Candidates</a></li>
+            <li class="py-2"><a href="Vote.html" class="hover:text-gray-300">Manage Vote</a></li>
+            <li class="py-2"><a href="countdown.html" class="hover:text-gray-300">Election Time Countdown</a></li>
+            <li class="py-2"><a href="results.html" class="hover:text-gray-300">Results</a></li>
+        </ul>
+        <button class="mt-6 bg-red-500 px-4 py-2 rounded text-white w-full">Logout</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-6">
+        <div class="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Candidate Management</h2>
+
+            <!-- Add/Edit Candidate Form -->
+            <form id="candidateForm" class="bg-gray-50 p-6 rounded-lg shadow-md" enctype="multipart/form-data">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="candidateName" placeholder="Candidate Name" class="p-3 border rounded-lg"
+                        required>
+                    <input type="text" id="candidateParty" placeholder="Party Affiliation" class="p-3 border rounded-lg"
+                        required>
+                    <input type="number" id="candidateAge" placeholder="Age" class="p-3 border rounded-lg" required>
+                    <input type="text" id="candidateQualification" placeholder="Qualification"
+                        class="p-3 border rounded-lg" required>
+                    <input type="text" id="candidatePromises" placeholder="Promises if Elected"
+                        class="p-3 border rounded-lg" required>
+                    <div class="col-span-2">
+                        <input type="file" id="candidatePhoto" accept="image/*" class="p-3 border rounded-lg"
+                            onchange="previewPhoto(event)" required>
+                        <img id="photoPreview" class="mt-4 w-32 h-32 object-cover rounded-full hidden" />
+                    </div>
+                </div>
+                <button type="submit" class="mt-6 w-full bg-blue-600 text-white px-6 py-3 rounded-lg">Add
+                    Candidate</button>
+            </form>
+
+            <!-- Candidate List -->
+            <div class="overflow-x-auto mt-6">
+                <table class="w-full bg-white border rounded-lg shadow-md">
+                    <thead>
+                        <tr class="bg-blue-600 text-white">
+                            <th class="p-4 border">Photo</th>
+                            <th class="p-4 border">Name</th>
+                            <th class="p-4 border">Party</th>
+                            <th class="p-4 border">Age</th>
+                            <th class="p-4 border">Qualification</th>
+                            <th class="p-4 border">Promises</th>
+                            <th class="p-4 border">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="candidateList" class="text-gray-700">
+                        <!-- Candidate rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editingIndex = null;
+
+        document.addEventListener('DOMContentLoaded', loadCandidates);
+
+        // Handle candidate form submission
+        document.getElementById('candidateForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const name = document.getElementById('candidateName').value;
+            const party = document.getElementById('candidateParty').value;
+            const age = document.getElementById('candidateAge').value;
+            const qualification = document.getElementById('candidateQualification').value;
+            const promises = document.getElementById('candidatePromises').value;
+            const photoInput = document.getElementById('candidatePhoto');
+            const photo = photoInput.files.length > 0 ? URL.createObjectURL(photoInput.files[0]) : '';
+
+            const candidate = { name, party, age, qualification, promises, photo };
+
+            if (editingIndex !== null) {
+                updateCandidate(editingIndex, candidate);
+            } else {
+                saveCandidate(candidate);
+            }
+
+            document.getElementById('candidateForm').reset();
+            document.getElementById('photoPreview').classList.add('hidden');
+            editingIndex = null;
+            loadCandidates();
+        });
+
+        function saveCandidate(candidate) {
+            let candidates = JSON.parse(localStorage.getItem('candidates')) || [];
+            candidates.push(candidate);
+            localStorage.setItem('candidates', JSON.stringify(candidates));
+        }
+
+        function loadCandidates() {
+            const table = document.getElementById('candidateList');
+            table.innerHTML = '';
+            const candidates = JSON.parse(localStorage.getItem('candidates')) || [];
+
+            candidates.forEach((candidate, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `
+                    <td class='p-4 border'><img src="${candidate.photo}" alt="Candidate Photo" class="w-16 h-16 object-cover rounded-full"></td>
+                    <td class='p-4 border'>${candidate.name}</td>
+                    <td class='p-4 border'>${candidate.party}</td>
+                    <td class='p-4 border'>${candidate.age}</td>
+                    <td class='p-4 border'>${candidate.qualification}</td>
+                    <td class='p-4 border'>${candidate.promises}</td>
+                    <td class='p-4 border'>
+                        <button class='bg-red-500 text-white px-3 py-2 rounded-lg' onclick='deleteCandidate(${index})'>Delete</button>
+                        <button class='bg-yellow-500 text-white px-3 py-2 rounded-lg' onclick='editCandidate(${index})'>Edit</button>
+                    </td>
+                `;
+            });
+        }
+
+        function deleteCandidate(index) {
+            let candidates = JSON.parse(localStorage.getItem('candidates')) || [];
+            candidates.splice(index, 1);
+            localStorage.setItem('candidates', JSON.stringify(candidates));
+            loadCandidates();
+        }
+
+        function editCandidate(index) {
+            let candidates = JSON.parse(localStorage.getItem('candidates')) || [];
+            let candidate = candidates[index];
+
+            // Populate form fields with current candidate's data
+            document.getElementById('candidateName').value = candidate.name;
+            document.getElementById('candidateParty').value = candidate.party;
+            document.getElementById('candidateAge').value = candidate.age;
+            document.getElementById('candidateQualification').value = candidate.qualification;
+            document.getElementById('candidatePromises').value = candidate.promises;
+
+            // Display candidate photo
+            const photoPreview = document.getElementById('photoPreview');
+            photoPreview.src = candidate.photo;
+            photoPreview.classList.remove('hidden');
+
+            editingIndex = index; // Set the editing index
+        }
+
+        function updateCandidate(index, updatedCandidate) {
+            let candidates = JSON.parse(localStorage.getItem('candidates')) || [];
+            candidates[index] = updatedCandidate;
+            localStorage.setItem('candidates', JSON.stringify(candidates));
+        }
+
+        // Preview photo before uploading
+        function previewPhoto(event) {
+            const photoPreview = document.getElementById('photoPreview');
+            const reader = new FileReader();
+            reader.onload = function () {
+                photoPreview.src = reader.result;
+                photoPreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    </script>
+</body>
+
+</html>

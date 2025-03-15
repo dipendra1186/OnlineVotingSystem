@@ -1,10 +1,23 @@
-const User = require('../model/Customer');
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const express = require('express');
 const app = express();
 
+app.use(cors());
+app.use(express.json());
+
+// Database connection function
+async function connectDB() {
+    return mysql.createConnection({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME
+    });
+}
 
 // Create a new customer
 const createCustomer = async (req, res) => {
@@ -39,9 +52,13 @@ const createCustomer = async (req, res) => {
             return res.status(400).json({ message: 'Invalid email format' });
         }
 
+        const connection = await connectDB();
+
         // Check for existing email & voterID
-        if (await User.findOne({ email })) return res.status(400).json({ message: 'Email already exists' });
-        if (await User.findOne({ voterID })) return res.status(400).json({ message: 'Voter ID already exists' });
+        const [existingUser] = await connection.execute('SELECT * FROM users WHERE email = ? OR voterID = ?', [email, voterID]);
+        if (existingUser.length > 0) {
+            return res.status(400).json({ message: 'Email or Voter ID already exists' });
+        }
 
         // Validate password
         if (password.length < 6) {
@@ -54,20 +71,12 @@ const createCustomer = async (req, res) => {
         const otpExpiry = new Date();
         otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
 
-        // Create new user
-        const newUser = new User({
-            fullName,
-            age: ageNum,
-            religion,
-            gender,
-            email,
-            password: hashedPassword,
-            voterID,
-            role: role || 'Voter',
-            otp,
-            otpExpiry,
-        });
-        await newUser.save();
+        // Insert new user into MySQL database
+        await connection.execute(
+            `INSERT INTO users (fullName, age, religion, gender, email, password, voterID, role, otp, otpExpiry)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [fullName, ageNum, religion, gender, email, hashedPassword, voterID, role || 'Voter', otp, otpExpiry]
+        );
 
         // Send OTP email
         await sendOTP(email, otp);
@@ -75,10 +84,10 @@ const createCustomer = async (req, res) => {
         res.status(200).json({ success: true, message: "User registered successfully" });
 
     } catch (error) {
-    console.error("Error in createCustomer:", error); // Log the error
-    res.status(500).json({ success: false, message: 'Registration failed. Please try again.', error: error.message });
-}};
-
+        console.error("Error in createCustomer:", error);
+        res.status(500).json({ success: false, message: 'Registration failed. Please try again.', error: error.message });
+    }
+};
 
 // Helper function to send OTP email
 const sendOTP = async (email, otp) => {
@@ -89,17 +98,15 @@ const sendOTP = async (email, otp) => {
             pass: 'gtfc mlza rgzr vlwx',
         },
     });
+
     const mailOptions = {
-        from: 'timalsinadipendra125@gmail.com',
+        rom: 'timalsinadipendra125@gmail.com',
         to: email,
         subject: 'OTP for Your Registration',
         text: `Your OTP is: ${otp}`,
     };
+
     await transporter.sendMail(mailOptions);
 };
 
-
 module.exports = createCustomer;
-// ✅ Enable CORS before defining routes
-app.use(cors());
-app.use(express.json());
