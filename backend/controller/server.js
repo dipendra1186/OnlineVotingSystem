@@ -1,25 +1,29 @@
 require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
-const signupController = require("../controller/signup");
-const loginController = require("../controller/login");
-const otpController = require("../controller/verifyotp");
-const resendOtpController = require("../controller/resendotp");
+const bodyParser = require("body-parser");
+
+const routes = require("../routes"); // Unified route handling
 
 const app = express();
 
-// Middlewares
-app.use(bodyParser.json());
-
-
-// API Routes
-app.use("/api/signup", signupController);
-app.use("/api/login", loginController);
-app.use("/api/verify-otp", otpController);
-app.use("/api/resend-otp", resendOtpController);
-
-// Start Server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ✅ Middleware Setup
 app.use(cors());
+app.use(express.json());
+app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ API Routes
+app.use("/api", routes);
+
+// ✅ Global Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error("🔥 Global Error:", err.message);
+    res.status(500).json({ error: "Something went wrong!" });
+});
+
+// ✅ Start the Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});

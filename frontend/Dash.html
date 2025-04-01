@@ -21,7 +21,10 @@
                 <li class="py-2"><a href="countdown.html" class="hover:text-gray-300">Election Time Countdown</a></li>
                 <li class="py-2"><a href="results.html" class="hover:text-gray-300">Results</a></li>
             </ul>
-            <button class="mt-6 bg-red-500 px-4 py-2 rounded text-white w-full">Logout</button>
+            <a href="login.html">
+                <button class="mt-6 bg-red-500 px-4 py-2 rounded text-white w-full">Logout</button>
+            </a>
+
         </div>
 
         <!-- Main Content -->
@@ -66,15 +69,48 @@
     </div>
 
     <script>
-        // Fetch dynamic data
-        const candidates = JSON.parse(localStorage.getItem('candidates')) || [];
+
+        // Function to fetch total voters from the backend API
+            async function fetchTotalVoters() {
+                try {
+                    const response = await fetch('http://localhost:3000/api/totalVoters');
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("API Response:", data);
+                        const totalVoters = data.totalVoters || 0; // Ensure totalVoters exists
+                        document.getElementById('totalVoters').innerText = totalVoters;
+                    } else {
+                        console.error('Failed to fetch total voters');
+                    }
+                } catch (error) {
+                    console.error('Error fetching total voters:', error);
+                }
+            }
+
+            // Call the function when the page is loaded
+            document.addEventListener('DOMContentLoaded', fetchTotalVoters);
+
+            // Fetch the candidate data and display the total number of candidates
+            document.addEventListener('DOMContentLoaded', () => {
+                const candidateCountElement = document.getElementById('totalCandidates');  // Changed this to 'totalCandidates'
+
+                // Fetch candidates from the API
+                fetch('http://localhost:3000/api/candidates')  // Make sure the URL is correct
+                    .then(response => response.json())
+                    .then(data => {
+                        // Display the number of candidates
+                        const totalCandidates = data.length; // Length of the array represents total candidates
+                        candidateCountElement.textContent = totalCandidates;
+                    })
+                    .catch(err => {
+                        console.error('Error fetching candidates:', err);
+                        candidateCountElement.textContent = 'Error fetching data';
+                    });
+            });
+
+        // Fetch dynamic data from localStorage
         const votes = JSON.parse(localStorage.getItem('votes')) || {};
         const electionEndTime = new Date(localStorage.getItem('electionEndTime')) || new Date();
-
-        // Update total counts
-        document.getElementById('totalVoters').textContent = localStorage.getItem('totalVoters') || 0;
-        document.getElementById('totalCandidates').textContent = candidates.length;
-        document.getElementById('votesCast').textContent = Object.values(votes).reduce((a, b) => a + b, 0);
 
         // Election Countdown Timer
         function updateCountdown() {
@@ -101,6 +137,7 @@
         const countdownInterval = setInterval(updateCountdown, 1000);
 
         // Prepare chart data
+        const candidates = JSON.parse(localStorage.getItem('candidates')) || [];
         const ctx = document.getElementById('voteChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'bar',
@@ -118,16 +155,8 @@
         function updateVotes(candidateName) {
             votes[candidateName] = votes[candidateName] ? votes[candidateName] + 1 : 1;
 
-            // Increment total voters count and store it in localStorage
-            let totalVoters = parseInt(localStorage.getItem('totalVoters')) || 0;
-            totalVoters += 1;
-            localStorage.setItem('totalVoters', totalVoters);
-            document.getElementById('totalVoters').textContent = totalVoters;
-
             // Save votes and update the votes cast count
             localStorage.setItem('votes', JSON.stringify(votes));
-            localStorage.setItem('votesCast', Object.values(votes).reduce((a, b) => a + b, 0));
-            document.getElementById('votesCast').textContent = localStorage.getItem('votesCast') || 0;
 
             // Update the chart dynamically
             chart.data.datasets[0].data = candidates.map(c => votes[c.name] || 0);
@@ -156,6 +185,7 @@
             }
         });
     </script>
+
 </body>
 
 </html>
